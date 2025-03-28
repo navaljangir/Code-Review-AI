@@ -11,7 +11,7 @@ export function Appbar() {
   const router = useRouter();
 
   return (
-    <nav className="w-full bg-transparent border-b border-white/10 z-50">
+    <nav className="w-full fixed border-b border-white/10 z-50 backdrop-blur-3xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}

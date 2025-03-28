@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <Providers>
-        <body className={`${Inter.className} antialiased`}>
+        <body className={`${Inter.className} antialiased bg-black/90`}>
           <Toaster position="top-right" />
           <div className="h-screen">
             <Appbar />

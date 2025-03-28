@@ -45,12 +45,13 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
-  username      String? @unique
+  username      String?   @unique
   image         String?
   password      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
+  Chats         Chat[]
   sessions      Session[]
 }
 
@@ -63,4 +64,25 @@ model VerificationRequest {
   updatedAt  DateTime @updatedAt
 
   @@unique([identifier, token])
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String    @default("New Code Review")
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Messages  Message[]
+  User      User      @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  content   String
+  role      String // user | assistant
+  code      String? // Optional code snippet
+  createdAt DateTime @default(now())
 }

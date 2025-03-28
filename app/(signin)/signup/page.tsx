@@ -9,7 +9,7 @@ export default async function Page(){
         redirect('/')
     }
     return (
-    <div className="h-screen mx-40">
+    <div className="h-full mx-40">
         <SignUppage/>
     </div>
     )
