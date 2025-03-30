@@ -2,7 +2,6 @@
 import Mailjet from 'node-mailjet';
 import crypto from 'crypto';
 import redisClient from '@/redis/redisClient'; 
-console.log(process.env.MAILJETAPIKEY)
 const mailjet = Mailjet.apiConnect(process.env.MAILJETAPIKEY || 'YOURMAILJETAPIKEY', process.env.MAILJETSECRETKEY || 'YOURMAILJETSECRETKEY');
 
 function generateMfaCode() {

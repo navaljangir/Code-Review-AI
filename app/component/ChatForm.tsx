@@ -1,75 +1,126 @@
-'use client'
+"use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useOptimistic, useState } from "react";
-import { getMessages } from "../lib/GetMessages";
+import { startTransition, useOptimistic, useRef, useEffect } from "react";
 import { MessageType } from "../lib/types/chatTypes";
-import { randomBytes } from "crypto";
+import { CreateUserChat } from "../lib/CreateUserChat";
+import { useSession } from "next-auth/react";
+import { getAiResponse } from "../lib/GetAiResponse";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { darcula } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
-export function ChatWindow() {
-    const params = useParams()
-    const chatId = params.chatId[0]
-    const [input, setInput] = useState('');
-   const {data: allMessages} =  useQuery({
-      queryKey : ['messages' , chatId],
-      queryFn : async()=>{
-        const initialMessages = await getMessages(chatId as string)
-        return initialMessages
-      }
-    })
-    const [messages, addOptimisticMessages] = useOptimistic(
-      allMessages ?? [] , (state , newMessage : MessageType) => [...state , newMessage]
-    );
-    const {mutateAsync : createMessage} = useMutation({
-      mutationFn : async()=>{
-        const messageId = randomBytes(16).toString('hex')
-        console.log('essageid' , messageId)
-      }
-    })
-    return (
-      <div className="flex-1 p-4 h-full flex flex-col w-full">
-        <div className="flex-1 overflow-auto mb-4 space-y-4 w-full pl-5">
-          {messages && messages.map(message => (
-            <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`} key={message.id}>
+export function ChatWindow({
+  allMessages,
+}: {
+  allMessages: MessageType[] | undefined;
+}) {
+  const params = useParams();
+  const chatId = params.chatId[0];
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const content = useRef("");
+  const session = useSession();
+  const userId = session.data?.user.id;
+  const [messages, addOptimisticMessages] = useOptimistic(
+    allMessages ?? [],
+    (state, newMessage: MessageType) => [...state, newMessage]
+  );
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  }, [messages]);
+  const { mutateAsync: createMessage, isPending } = useMutation({
+    mutationFn: async () => {
+      startTransition(() => {
+        addOptimisticMessages({
+          id: Math.random().toString() as string,
+          chatId: chatId,
+          content: content.current,
+          createdAt: new Date(),
+          role: "user",
+          code: null,
+          codeLanguage: null,
+        });
+      });
+      await CreateUserChat(userId, chatId, content.current);
+      const res = await getAiResponse(chatId, content.current);
+      console.log("airesponse", res);
+      startTransition(() => {
+        if (res) {
+          addOptimisticMessages(res);
+        }
+      });
+    },
+  });
+
+  return (
+    <div className="flex flex-col h-full bg-gray-900/95 backdrop-blur-lg rounded-xl border border-gray-700 overflow-hidden">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4 "
+      >
+        {messages &&
+          messages.map((message) => (
             <div
               key={message.id}
-              className={`py-2 px-4 rounded-lg ${message.role === 'user' ? 'bg-black/30 w-[400px] rounded-2xl text-white' : 'border text-white mr-8'}`}
+              className={`flex ${
+                message.role === "user" ? "justify-end" : "justify-start"
+              }`}
             >
-              {message.code && (
-                <pre className="text-white">
-                  <code>{message.code}</code>
-                </pre>
-              )}
-              {message.content && <p>{message.content}</p>}
+              <div
+                className={`max-w-[80%] lg:max-w-[60%] p-4 rounded-2xl ${
+                  message.role === "user"
+                    ? "bg-blue-600 text-white ml-12"
+                    : "bg-gray-800/60 text-gray-100 mr-12 border border-gray-700"
+                }`}
+              >
+                {message.code && (
+                  <pre className="overflow-x-auto p-2 bg-black/40 rounded-lg text-wrap">
+                    <SyntaxHighlighter language="javascript" style={darcula}>
+                      {message.code}
+                    </SyntaxHighlighter>
+                  </pre>
+                )}
+                {message.content && (
+                  <pre className="text-wrap">
+                    <p className="text-gray-100 leading-relaxed">
+                      {message.content}
+                    </p>
+                  </pre>
+                )}
+              </div>
             </div>
-          </div>
-          
           ))}
-        </div>
-        
-        <form 
-          onSubmit={(e) => {
-            e.preventDefault();
-            setInput('');
-          }}
-          className="flex gap-2 items-center mx-auto w-[800px]"
-        >
+      </div>
+
+      <form
+        action={async () => {
+          await createMessage();
+        }}
+        className="border-t border-gray-700 p-4"
+      >
+        <div className="flex gap-3 items-center max-w-4xl mx-auto">
           <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="flex-1 p-2 border rounded bg-transparent text-white"
+            onChange={(e) => (content.current = e.target.value)}
+            className="flex-1 p-3 bg-gray-800/60 text-gray-100 rounded-xl border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 resize-none transition-all"
             placeholder="Paste your code or ask a question..."
             rows={2}
+            name="userinput"
           />
           <button
             type="submit"
-            className="bg-blue-500 text-white p-2 rounded h-fit"
-            onClick={()=> createMessage()}
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-600 text-white p-3 rounded-xl font-medium transition-colors duration-200 transform hover:scale-105 active:scale-95"
+            disabled={isPending}
           >
-            Send
+            {isPending ? "Sending..." : "Send"}
           </button>
-        </form>
-      </div>
-    );
-  }
+        </div>
+      </form>
+    </div>
+  );
+}

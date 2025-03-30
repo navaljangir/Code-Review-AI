@@ -1,18 +1,20 @@
 'use server'
 
 import { prisma } from "@/db"
-
-export async function CreateUserChat(chatid : string , content :string){
+import { revalidatePath } from "next/cache"
+export async function CreateUserChat(userId : string | undefined , chatid : string , content :string){
+    
     try{
-        const res = await prisma.message.create({
+        await prisma.message.create({
             data: {
                 content, 
                 role: 'user', 
                 chatId : chatid
             }
         })
-        return res
     }catch(e){
-        console.log('Error while creating ')
+        console.log('Error while creating ' , e)
+    }finally{
+        revalidatePath(`/chat/${chatid}`)
     }
 }

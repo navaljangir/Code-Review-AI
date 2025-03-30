@@ -38,8 +38,6 @@ export const authOptions : NextAuthOptions= {
               const mfatoken = credentials?.mfatoken
               const mfaExists = await redisClient.get(email)
               if(!mfaExists || mfaExists !=mfatoken){ 
-                console.log('mfaexists' , mfaExists)
-                console.log('mfaToken' , (mfatoken))
                 return null;
               }
               return {

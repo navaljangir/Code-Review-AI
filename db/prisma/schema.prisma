@@ -24,7 +24,7 @@ model Account {
   accessTokenExpires DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
-  user               User      @relation(fields: [userId], references: [id])
+  user               User      @relation(fields: [userId], references: [id] , onDelete:  Cascade)
 
   @@unique([providerId, providerAccountId])
 }
@@ -37,7 +37,7 @@ model Session {
   accessToken  String   @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -50,6 +50,7 @@ model User {
   password      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  credits       Int?   @default(2)
   accounts      Account[]
   Chats         Chat[]
   sessions      Session[]
@@ -74,15 +75,16 @@ model Chat {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   Messages  Message[]
-  User      User      @relation(fields: [userId], references: [id])
+  User      User      @relation(fields: [userId], references: [id] , onDelete: Cascade)
 }
 
 model Message {
   id        String   @id @default(cuid())
   chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  chat      Chat     @relation(fields: [chatId], references: [id] , onDelete:  Cascade)
   content   String
   role      String // user | assistant
   code      String? // Optional code snippet
+  codeLanguage String?
   createdAt DateTime @default(now())
 }

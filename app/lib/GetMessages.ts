@@ -3,7 +3,6 @@
 import { prisma } from "@/db"
 
 export async function getMessages(chatId : string){
-    console.log('chatid' , chatId)
     if(!chatId){
         return []
     }

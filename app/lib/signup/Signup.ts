@@ -11,9 +11,7 @@ export default async function SignUpCall({username , name , email  , password } 
      zodValidation.error?.issues.forEach((obj)=> {
         zodMessage = zodMessage + obj.message +'. ' 
     });
-     console.log(zodMessage);
     if(zodValidation.error){
-        console.log(zodValidation.error.issues);
         return {
             success : false, 
             Message : zodMessage
@@ -53,7 +51,6 @@ export default async function SignUpCall({username , name , email  , password } 
                 password : hashedPassword,
             }
         })
-        console.log(userCreated);
         if(!userCreated){
             return {
                 success: false , 
