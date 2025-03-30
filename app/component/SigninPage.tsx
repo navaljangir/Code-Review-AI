@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useRef, useState, useEffect } from "react";
-import {signInCall } from '@/app/lib/signin/Signin'
+import { signInCall } from "@/app/lib/signin/Signin";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -20,16 +20,16 @@ const emailDomains = [
   "hotmail.com",
   "rediffmail.com",
 ];
-interface UserType{
-    id :string | null
-    email : string | null
-    name : string | null
+interface UserType {
+  id: string | null;
+  email: string | null;
+  name: string | null;
 }
 const Signin = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [checkingPassword, setCheckingPassword] = useState(false);
-  const [user, setUser] = useState<UserType>()
-  const [enableToken , setEnableToken] = useState(false)
+  const [user, setUser] = useState<UserType>();
+  const [enableToken, setEnableToken] = useState(false);
   const [requiredError, setRequiredError] = useState({
     emailReq: false,
     passReq: false,
@@ -40,16 +40,16 @@ const Signin = () => {
   const passwordRef = useRef<HTMLInputElement>(null);
   const suggestionRefs = useRef<HTMLLIElement[]>([]);
   const dropdownRef = useRef<HTMLUListElement>(null);
-  const [checkMFA , setCheckingMFA] = useState(false)
-
+  const [checkMFA, setCheckingMFA] = useState(false);
+  const [isResending, setResending] = useState(false);
   function togglePasswordVisibility() {
     setIsPasswordVisible((prevState: boolean) => !prevState);
   }
   const router = useRouter();
   const email = useRef("");
   const password = useRef("");
-  const token = useRef('');
-  
+  const token = useRef("");
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     email.current = value;
@@ -132,34 +132,44 @@ const Signin = () => {
       return;
     }
     setCheckingPassword(true);
-    const res = await signInCall(email.current , password.current);
-    if(res.success){
-        toast.success('Signed In! MFA Code is sent On Your email')
-        await sendMfaToken(res.user?.email , res.user?.name)
-        setEnableToken(true)
-        setUser(res.user)
-        setCheckingPassword(false)
-    }else{
-        setCheckingPassword(false)
+    const res = await signInCall(email.current, password.current);
+    if (res.success) {
+      toast.success("Signed In! MFA Code is sent On Your email");
+      await sendMfaToken(res.user?.email, res.user?.name);
+      setEnableToken(true);
+      setUser(res.user);
+      setCheckingPassword(false);
+    } else {
+      setCheckingPassword(false);
     }
-    
   };
-  async function handleTokenSubmit(){
-    setCheckingMFA(true)
-        const res = await signIn('credentials' , {
-            email : user?.email , 
-            mfatoken : token.current,
-            redirect : false
-        })
-        if(!res?.ok){
-            toast.error('Invalid Token')
-            // router.push('/')
-        }else{
-            toast.success('Signed In Successfully')
-            router.push('/chat')
-        }
-        setCheckingMFA(false)
+  async function handleTokenSubmit() {
+    setCheckingMFA(true);
+    const res = await signIn("credentials", {
+      email: user?.email,
+      mfatoken: token.current,
+      redirect: false,
+    });
+    if (!res?.ok) {
+      toast.error("Invalid Token");
+      // router.push('/')
+    } else {
+      toast.success("Signed In Successfully");
+      router.push("/chat");
+    }
+    setCheckingMFA(false);
   }
+
+  //Send Token again
+  async function handleResendToken() {
+    setResending(true)
+    await sendMfaToken(user?.email, user?.name);
+    toast.success("Token sent again!");
+    setResending(false)
+    await handleTokenSubmit()
+
+  }
+
   // Handle clicks outside the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -201,147 +211,168 @@ const Signin = () => {
             Log in to access!
           </p>
         </div>
-        {!enableToken && <div className="flex flex-col gap-8">
-          <div className="grid w-full items-center gap-4">
-            <div className="relative flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                className="focus:ring-none border-none bg-primary/5 focus:outline-none"
-                name="email"
-                id="email"
-                placeholder="name@email.com"
-                value={email.current}
-                onChange={handleEmailChange}
-                onKeyDown={handleKeyDown}
-                onBlur={() => setSuggestedDomains([])} // Hide suggestions on blur
-              />
-              {email.current && suggestedDomains.length > 0 && (
-                <ul
-                  ref={dropdownRef}
-                  className={`absolute top-20 z-50 max-h-96 w-full min-w-[8rem] overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
-                >
-                  {suggestedDomains.map((domain: string, index: number) => (
-                    <>
-                      <li
-                        key={domain}
-                        value={domain}
-                        ref={(listItem) => {
-                          suggestionRefs.current[index] = listItem!;
-                        }}
-                        onMouseDown={() => handleSuggestionClick(domain)}
-                        onClick={() => handleSuggestionClick(domain)}
-                        className={`relative flex w-full cursor-default select-none items-center rounded-sm p-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${
-                          focusedIndex === index
-                            ? "bg-primary-foreground font-medium"
-                            : ""
-                        }`}
-                      >
-                        {email.current.split("@")[0]}@{domain}
-                      </li>
-
-                      {index < suggestedDomains.length - 1 && <Separator />}
-                    </>
-                  ))}
-                </ul>
-              )}
-              {requiredError.emailReq && (
-                <span className="text-red-500">Email is required</span>
-              )}
-            </div>
-            <div className="relative flex flex-col gap-2">
-              <Label>Password</Label>
-              <div className="flex">
+        {!enableToken && (
+          <div className="flex flex-col gap-8">
+            <div className="grid w-full items-center gap-4">
+              <div className="relative flex flex-col gap-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   className="focus:ring-none border-none bg-primary/5 focus:outline-none"
-                  name="password"
-                  type={isPasswordVisible ? "text" : "password"}
-                  id="password"
-                  placeholder="••••••••"
-                  ref={passwordRef}
-                  onChange={(e) => {
-                    setRequiredError((prevState) => ({
-                      ...prevState,
-                      passReq: false,
-                    }));
-                    password.current = e.target.value;
-                  }}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter") {
-                      setIsPasswordVisible(false);
-                      handleSubmit();
-                    }
-                  }}
+                  name="email"
+                  id="email"
+                  placeholder="name@email.com"
+                  value={email.current}
+                  onChange={handleEmailChange}
+                  onKeyDown={handleKeyDown}
+                  onBlur={() => setSuggestedDomains([])} // Hide suggestions on blur
                 />
-                <button
-                  className="absolute bottom-0 right-0 flex h-10 items-center px-4 text-neutral-500"
-                  onClick={togglePasswordVisibility}
-                >
-                  {isPasswordVisible ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  )}
-                </button>
+                {email.current && suggestedDomains.length > 0 && (
+                  <ul
+                    ref={dropdownRef}
+                    className={`absolute top-20 z-50 max-h-96 w-full min-w-[8rem] overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
+                  >
+                    {suggestedDomains.map((domain: string, index: number) => (
+                      <>
+                        <li
+                          key={domain}
+                          value={domain}
+                          ref={(listItem) => {
+                            suggestionRefs.current[index] = listItem!;
+                          }}
+                          onMouseDown={() => handleSuggestionClick(domain)}
+                          onClick={() => handleSuggestionClick(domain)}
+                          className={`relative flex w-full cursor-default select-none items-center rounded-sm p-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${
+                            focusedIndex === index
+                              ? "bg-primary-foreground font-medium"
+                              : ""
+                          }`}
+                        >
+                          {email.current.split("@")[0]}@{domain}
+                        </li>
+
+                        {index < suggestedDomains.length - 1 && <Separator />}
+                      </>
+                    ))}
+                  </ul>
+                )}
+                {requiredError.emailReq && (
+                  <span className="text-red-500">Email is required</span>
+                )}
               </div>
-              {requiredError.passReq && (
-                <span className="text-red-500">Password is required</span>
-              )}
-            </div>
-          </div>
-          <Link href={'/signup'} className="hover:underline text-center w-full">Don&apos;t have a Account? Sign Up Here!</Link>
-          <Button
-            size={"lg"}
-            variant={"default"}
-            disabled={!email.current || !password.current || checkingPassword}
-            onClick={handleSubmit}
-          >
-            Login
-          </Button>
-        </div>}
-        {
-            enableToken && <div>
-                <Input
-                  className="focus:ring-none border-none bg-primary/5 bg-white" 
-                  id='token'
-                  name='token'
-                  onChange={(e)=> token.current = e.target.value}
-                  placeholder="Enter Your Token"
+              <div className="relative flex flex-col gap-2">
+                <Label>Password</Label>
+                <div className="flex">
+                  <Input
+                    className="focus:ring-none border-none bg-primary/5 focus:outline-none"
+                    name="password"
+                    type={isPasswordVisible ? "text" : "password"}
+                    id="password"
+                    placeholder="••••••••"
+                    ref={passwordRef}
+                    onChange={(e) => {
+                      setRequiredError((prevState) => ({
+                        ...prevState,
+                        passReq: false,
+                      }));
+                      password.current = e.target.value;
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        setIsPasswordVisible(false);
+                        handleSubmit();
+                      }
+                    }}
                   />
-                  <Button variant={'link'} className="w-full text-center">Send Token Again?</Button>
-                  <Button onClick={handleTokenSubmit} className="mt-2 w-full text-center" disabled={checkMFA}> {!checkMFA ? 'Verify ' : 'Verifying...' }</Button>
+                  <button
+                    className="absolute bottom-0 right-0 flex h-10 items-center px-4 text-neutral-500"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {isPasswordVisible ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-5 w-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-5 w-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {requiredError.passReq && (
+                  <span className="text-red-500">Password is required</span>
+                )}
+              </div>
             </div>
-        }
+            <Link
+              href={"/signup"}
+              className="hover:underline text-center w-full"
+            >
+              Don&apos;t have a Account? Sign Up Here!
+            </Link>
+            <Button
+              size={"lg"}
+              variant={"default"}
+              disabled={!email.current || !password.current || checkingPassword}
+              onClick={handleSubmit}
+            >
+              Login
+            </Button>
+          </div>
+        )}
+        {enableToken && (
+          <div>
+            <Input
+              className="focus:ring-none border-none bg-primary/5 bg-white"
+              id="token"
+              name="token"
+              onChange={(e) => (token.current = e.target.value)}
+              placeholder="Enter Your Token"
+            />
+            <Button
+              variant={"link"}
+              className="w-full text-center"
+              onClick={handleResendToken}
+              disabled={isResending}
+            >
+              {isResending ? "Sending..." : "Send Token Again?"}
+            </Button>
+            <Button
+              onClick={handleTokenSubmit}
+              className="mt-2 w-full text-center"
+              disabled={checkMFA}
+            >
+              {" "}
+              {!checkMFA ? "Verify " : "Verifying..."}
+            </Button>
+          </div>
+        )}
       </motion.div>
       <div className="absolute -bottom-[16rem] -z-[20] size-[24rem] overflow-hidden rounded-full bg-gradient-to-t from-blue-400 to-blue-700 blur-[16em]" />
     </section>

@@ -45,30 +45,40 @@ Your response should be a structured JSON object with the following keys:
     systemInstruction: systemInstructions,
   });
 
-  const result = await model.generateContent(userMessage);
-  const aiResponse = result.response
-    .text()
-    .replace(/```json|```/g, "")
-    .trim();
-  const getAIResJson = JSON.parse(aiResponse);
-
-  console.log("aiResponse", getAIResJson);
-  const code = getAIResJson.improved_code
-    .replace(/^<Code>/, "")
-    .replace(/<\/Code>$/, "");
   try {
+    const result = await model.generateContent(userMessage);
+
+    // Ensure response is JSON-parsable
+    let aiResponse = result.response.text().trim();
+
+    // Remove code fences if present
+    aiResponse = aiResponse.replace(/```json|```/g, "").trim();
+
+    const getAIResJson = JSON.parse(aiResponse);
+
+    const code = getAIResJson.improved_code
+      ? getAIResJson.improved_code
+          .replace(/^<Code>/, "")
+          .replace(/<\/Code>$/, "")
+      : "";
+
     const storeResponse = await prisma.message.create({
       data: {
         chatId: chatId,
         role: "server",
-        content: getAIResJson.best_practices.join(" "),
-        codeLanguage: getAIResJson.language,
+        content: getAIResJson.best_practices?.join(" ") || "",
+        codeLanguage: getAIResJson.language || "unknown",
         code: code,
       },
     });
-    return storeResponse;
-  } catch (e) {
-    console.log("Error while storing Ai response", e);
+
+    return {
+        success : true , 
+        data : storeResponse
+    };
+  } catch (error) {
+    console.error("Error while parsing AI response or storing data:", error);
+    return { success: false};
   } finally {
     revalidatePath(`/chat/${chatId}`);
   }

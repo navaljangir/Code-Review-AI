@@ -9,7 +9,7 @@ export default async function Page() {
     redirect("/chat");
   }
   return (
-    <div className="h-screen bg-black bg-opacity-30">
+    <div className="h-screenbg-opacity-30">
       <SigninPage />
     </div>
   );

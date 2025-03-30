@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { GetChat } from "../lib/getChats";
+import { GetChat } from "../lib/GetAllChats";
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";

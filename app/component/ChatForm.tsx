@@ -1,14 +1,15 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { startTransition, useOptimistic, useRef, useEffect } from "react";
 import { MessageType } from "../lib/types/chatTypes";
-import { CreateUserChat } from "../lib/CreateUserChat";
+import { CreateUserMessage } from "../lib/CreateUserMessage";
 import { useSession } from "next-auth/react";
 import { getAiResponse } from "../lib/GetAiResponse";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { darcula } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { CreditsLeftComp } from "./CreditsLeft";
 
 export function ChatWindow({
   allMessages,
@@ -20,6 +21,7 @@ export function ChatWindow({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const content = useRef("");
   const session = useSession();
+  const queryClient=  useQueryClient()
   const userId = session.data?.user.id;
   const [messages, addOptimisticMessages] = useOptimistic(
     allMessages ?? [],
@@ -30,7 +32,7 @@ export function ChatWindow({
       const container = messagesContainerRef.current;
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   }, [messages]);
@@ -47,20 +49,26 @@ export function ChatWindow({
           codeLanguage: null,
         });
       });
-      await CreateUserChat(userId, chatId, content.current);
-      const res = await getAiResponse(chatId, content.current);
-      console.log("airesponse", res);
-      startTransition(() => {
-        if (res) {
-          addOptimisticMessages(res);
+      const chatCreated = await CreateUserMessage(userId!, chatId, content.current);
+      if (chatCreated && chatCreated.success) {
+        const res = await getAiResponse(chatId, content.current);
+        if (res && res.success) {
+          startTransition(() => {
+            if (res && res.data) {
+              addOptimisticMessages(res.data);
+            }
+          });
         }
-      });
+      }
     },
+    onSuccess : ()=>{
+        queryClient.invalidateQueries({queryKey : ['creditsleft' , userId]})
+    }
   });
 
   return (
     <div className="flex flex-col h-full bg-gray-900/95 backdrop-blur-lg rounded-xl border border-gray-700 overflow-hidden">
-      <div 
+      <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 "
       >
@@ -119,6 +127,9 @@ export function ChatWindow({
           >
             {isPending ? "Sending..." : "Send"}
           </button>
+          <div className="text-xs text-white flex gap-1">
+            Credits Left : <CreditsLeftComp/>
+          </div>
         </div>
       </form>
     </div>
