@@ -37,11 +37,14 @@ export function ChatInterface() {
             placeholder="Enter your code to start working..."
             className="flex-1 py-6 rounded-xl border-0 text-lg focus-visible:ring-0 focus-visible:ring-offset-0"
             onChange={(e) => userinput.current=e.target.value}
-            onKeyDown={(e) =>{
-              if(!isPending){
-                e.key === 'Enter' && handleSubmit()
+            onKeyDown={(e) => {
+              if (isPending) return;
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit();
               }
             }}
+            
           />
           <Button
             onClick={()=> handleSubmit()}
