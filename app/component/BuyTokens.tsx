@@ -36,27 +36,23 @@ const packs = [
 ];
 
 export default function Checkout() {
-  const [amount, setAmount] = useState(0); // Default ₹1
   const [loading, setLoading] = useState(false);
   const session = useSession();
-  const [tokens, setTokens] = useState(0);
   const userId = session.data?.user.id;
   const email = session.data?.user.email;
   const router = useRouter()
   const handlePayment = async (packAmount: number, packTokens: number) => {
-    setAmount(packAmount);
-    setTokens(packTokens);
     setLoading(true);
-    // Call the server action to create an order
-    const order = await createRazorpayOrder(amount);
-    // console.log(order)
+  
+    // Call the server action to create an order using packAmount directly
+    const order = await createRazorpayOrder(packAmount);
+  
     if ("success" in order && !order.success) {
       alert("Error creating order");
       setLoading(false);
       return;
     }
-
-    // // Initialize Razorpay
+  
     if ("id" in order && "amount" in order && "currency" in order) {
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -72,7 +68,7 @@ export default function Checkout() {
         }) => {
           const payload = {
             userid: email!,
-            amount: Number(amount),
+            amount: Number(packAmount), // Use packAmount instead of state
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature: response.razorpay_signature,
@@ -83,11 +79,11 @@ export default function Checkout() {
             payload.razorpay_signature
           );
           if (verifyResponse.success) {
-            await AddToken(tokens, userId!);
+            await AddToken(packTokens, userId!);
             toast.success(`Tokens Purchased Successfully`);
-            router.push('/chat')
-          }else{
-            toast.success('Error While Purchasing')
+            router.push("/chat");
+          } else {
+            toast.success("Error While Purchasing");
           }
         },
         theme: {
@@ -99,6 +95,7 @@ export default function Checkout() {
     }
     setLoading(false);
   };
+  
   return (
     <div className="min-h-screen bg-slate-900 p-8 flex flex-col justify-center">
       <div className="max-w-6xl mx-auto text-center">
