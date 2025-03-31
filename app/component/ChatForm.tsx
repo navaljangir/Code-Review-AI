@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { startTransition, useOptimistic, useRef, useEffect } from "react";
 import { MessageType } from "../lib/types/chatTypes";
 import { CreateUserMessage } from "../lib/CreateUserMessage";
@@ -23,6 +23,7 @@ export function ChatWindow({
   const content = useRef("");
   const session = useSession();
   const queryClient=  useQueryClient()
+  const router= useRouter()
   const userId = session.data?.user.id;
   const [messages, addOptimisticMessages] = useOptimistic(
     allMessages ?? [],
@@ -53,6 +54,7 @@ export function ChatWindow({
       const chatCreated = await CreateUserMessage(userId!, chatId, content.current);
       if(chatCreated?.message){
         toast.error(chatCreated.message)
+        router.push('/buy')
         return
       }
       if (chatCreated && chatCreated.success) {
