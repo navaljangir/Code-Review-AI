@@ -11,6 +11,15 @@ export async function CreateNewChat(userId : string , content : string){
         }
     })
     await CreateUserMessage(userId , newChat.id , content);
-    await getAiResponse(newChat.id , content );
+    const aiResponse = await getAiResponse(newChat.id , content , true );
+    if(aiResponse.title){
+        await prisma.chat.update({
+            where : {
+                id : newChat.id
+            },data : {
+                title : aiResponse.title
+            }
+        })
+    }
     return newChat
 }

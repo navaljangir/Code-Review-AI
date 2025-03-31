@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, User, LogOut } from "lucide-react";
+import { ArrowRight, User, LogOut, Ticket } from "lucide-react";
 import Link from "next/link";
 
 export function Appbar() {
@@ -74,7 +74,16 @@ export function Appbar() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
+                className="flex gap-2"
               >
+                <Button onClick={()=> {
+                  router.push('/buy')  
+                }}
+                className="gap-2 flex"
+                >
+                  <Ticket/>
+                  Buy Tokens
+                </Button>
                 <Button
                   className="group relative overflow-hidden bg-gradient-to-br from-red-500/20 to-orange-600/20 backdrop-blur-sm border border-white/10 hover:border-red-400/40 rounded-xl px-6 py-2.5 transition-all duration-300"
                   onClick={() => signOut()}

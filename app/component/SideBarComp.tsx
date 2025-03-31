@@ -59,7 +59,7 @@ export function ChatList() {
                             >
                                 <MessageSquareText className="h-4 w-4 mt-1 mr-3 text-gray-500" />
                                 <div className="flex-1">
-                                    <h3 className="text-gray-100 font-medium truncate">
+                                    <h3 className="text-gray-100 font-medium w-40 overflow-hidden whitespace-nowrap text-ellipsis">
                                         {chat.title || "New Chat"}
                                     </h3>
                                     <p className="text-xs text-gray-400 mt-1">

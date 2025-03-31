@@ -166,8 +166,6 @@ const Signin = () => {
     await sendMfaToken(user?.email, user?.name);
     toast.success("Token sent again!");
     setResending(false)
-    await handleTokenSubmit()
-
   }
 
   // Handle clicks outside the dropdown

@@ -10,6 +10,7 @@ import { getAiResponse } from "../lib/GetAiResponse";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { darcula } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { CreditsLeftComp } from "./CreditsLeft";
+import { toast } from "sonner";
 
 export function ChatWindow({
   allMessages,
@@ -50,6 +51,10 @@ export function ChatWindow({
         });
       });
       const chatCreated = await CreateUserMessage(userId!, chatId, content.current);
+      if(chatCreated?.message){
+        toast.error(chatCreated.message)
+        return
+      }
       if (chatCreated && chatCreated.success) {
         const res = await getAiResponse(chatId, content.current);
         if (res && res.success) {

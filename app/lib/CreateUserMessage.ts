@@ -11,7 +11,8 @@ export async function CreateUserMessage(
     const creditsLeft = await GetCreditsLeft(userId)
     if(!creditsLeft || creditsLeft<=0){
         return {
-            success : false
+            success : false,
+            message : `You don't have Enough Credits! Buy Now`
         }
     }
   try {
